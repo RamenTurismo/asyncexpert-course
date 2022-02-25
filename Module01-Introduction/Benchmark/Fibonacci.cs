@@ -1,5 +1,5 @@
-﻿using System.Collections.Generic;
-using BenchmarkDotNet.Attributes;
+﻿using BenchmarkDotNet.Attributes;
+using System.Collections.Generic;
 
 namespace Dotnetos.AsyncExpert.Homework.Module01.Benchmark
 {
@@ -18,7 +18,11 @@ namespace Dotnetos.AsyncExpert.Homework.Module01.Benchmark
         [ArgumentsSource(nameof(Data))]
         public ulong Recursive(ulong n)
         {
-            if (n == 1 || n == 2) return 1;
+            if (n == 1 || n == 2)
+            {
+                return 1;
+            }
+
             return Recursive(n - 2) + Recursive(n - 1);
         }
 
@@ -26,20 +30,52 @@ namespace Dotnetos.AsyncExpert.Homework.Module01.Benchmark
         [ArgumentsSource(nameof(Data))]
         public ulong RecursiveWithMemoization(ulong n)
         {
-            return 0;
+            var cache = new ulong[n + 1];
+
+            return RecursiveWithMemoization(n, cache);
         }
-        
+
         [Benchmark]
         [ArgumentsSource(nameof(Data))]
         public ulong Iterative(ulong n)
         {
-            return 0;
+            if (n == 1 || n == 2)
+            {
+                return 1;
+            }
+
+            ulong number = 1;
+            ulong previousNumber = 1;
+
+            for (ulong i = 2; i < n; i++)
+            {
+                ulong temp = number;
+                number += previousNumber;
+                previousNumber = temp;
+            }
+
+            return number;
         }
 
         public IEnumerable<ulong> Data()
         {
             yield return 15;
             yield return 35;
+        }
+
+        private static ulong RecursiveWithMemoization(ulong n, ulong[] lookup)
+        {
+            if (n == 1 || n == 2)
+            {
+                return 1;
+            }
+
+            if (lookup[n] == default)
+            {
+                lookup[n] = RecursiveWithMemoization(n - 1, lookup) + RecursiveWithMemoization(n - 2, lookup);
+            }
+
+            return lookup[n];
         }
     }
 }

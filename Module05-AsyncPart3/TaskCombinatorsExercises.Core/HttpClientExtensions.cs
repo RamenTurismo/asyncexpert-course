@@ -1,6 +1,4 @@
-﻿using System;
-using System.Linq;
-using System.Net.Http;
+﻿using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -23,7 +21,28 @@ namespace TaskCombinatorsExercises.Core
         public static async Task<string> ConcurrentDownloadAsync(this HttpClient httpClient,
             string[] urls, int millisecondsTimeout, CancellationToken token)
         {
-            return String.Empty;
+            using CancellationTokenSource tcs = new CancellationTokenSource(millisecondsTimeout);
+            token.Register(state => ((CancellationTokenSource)state).Cancel(), tcs);
+
+            using CancellationTokenSource linked = CancellationTokenSource.CreateLinkedTokenSource(tcs.Token, token);
+
+            string result = null;
+
+            foreach (string url in urls)
+            {
+                linked.Token.ThrowIfCancellationRequested();
+
+                using HttpResponseMessage response = await httpClient.GetAsync(url, linked.Token);
+
+                if (response is null)
+                {
+                    continue;
+                }
+
+                result = await response.Content.ReadAsStringAsync();
+            }
+
+            return result;
         }
     }
 }

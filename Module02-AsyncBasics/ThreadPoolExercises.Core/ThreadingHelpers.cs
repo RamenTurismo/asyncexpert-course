@@ -12,10 +12,30 @@ namespace ThreadPoolExercises.Core
             // * In a loop, check whether `token` is not cancelled
             // * If an `action` throws and exception (or token has been cancelled) - `errorAction` should be invoked (if provided)
 
+            var thread = new Thread(() =>
+            {
+                try
+                {
+                    for (int i = 0; i < repeats; i++)
+                    {
+                        if (token.IsCancellationRequested)
+                        {
+                            token.ThrowIfCancellationRequested();
+                        }
 
+                        action();   
+                    }
+                }
+                catch (Exception e)
+                {
+                    errorAction?.Invoke(e);
+                }
+            });
 
+            thread.Start();
+            thread.Join();
         }
-
+        
         public static void ExecuteOnThreadPool(Action action, int repeats, CancellationToken token = default, Action<Exception>? errorAction = null)
         {
             // * Queue work item to a thread pool that executes `action` given number of `repeats` - waiting for the execution!
@@ -23,8 +43,33 @@ namespace ThreadPoolExercises.Core
             // * In a loop, check whether `token` is not cancelled
             // * If an `action` throws and exception (or token has been cancelled) - `errorAction` should be invoked (if provided)
 
+            var autoResetEvent = new AutoResetEvent(false);
 
+            ThreadPool.QueueUserWorkItem(state =>
+            {
+                try
+                {
+                    for (int i = 0; i < repeats; i++)
+                    {
+                        if (token.IsCancellationRequested)
+                        {
+                            token.ThrowIfCancellationRequested();
+                        }
 
+                        action();
+                    }
+                }
+                catch (Exception e)
+                {
+                    errorAction?.Invoke(e);
+                }
+                finally
+                {
+                    autoResetEvent.Set();
+                }
+            });
+
+            autoResetEvent.WaitOne();
         }
     }
 }
