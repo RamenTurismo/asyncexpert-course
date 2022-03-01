@@ -22,13 +22,15 @@ namespace Pipelines
             // Good luck and have fun with pipelines!
             var pipe = new Pipe();
 
-            await WriteAsync(pipe.Writer, stream);
-            int count = await ReadAsync(pipe.Reader);
+            Task write = WriteAsync(pipe.Writer, stream);
+            Task<int> read = ReadAsync(pipe.Reader);
 
-            return count;
+            await Task.WhenAll(write, read);
+
+            return read.Result;
         }
 
-        private static async ValueTask WriteAsync(PipeWriter writer, Stream stream)
+        private static async Task WriteAsync(PipeWriter writer, Stream stream)
         {
             while (true)
             {
@@ -40,12 +42,14 @@ namespace Pipelines
                 {
                     break;
                 }
+
+                await writer.FlushAsync();
             }
 
             await writer.CompleteAsync();
         }
 
-        private static async ValueTask<int> ReadAsync(PipeReader reader)
+        private static async Task<int> ReadAsync(PipeReader reader)
         {
             var count = 0;
 
